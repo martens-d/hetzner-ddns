@@ -9,7 +9,6 @@ ZONE_NAME = os.getenv("ZONE_NAME")
 API_TOKEN = os.getenv("API_TOKEN")
 RECORD_TYPE = os.getenv("RECORD_TYPE", "A")
 RECORD_NAME = os.getenv("RECORD_NAME", "@")
-USE_UPDATEZONE = os.getenv("HETZNER_DDNS_USE_UPDATEZONE", "false").lower() in ["1", "true", "yes"]
 
 INTERVAL = int(os.getenv("INTERVAL", "300"))  # Interval in seconds
 
@@ -47,45 +46,16 @@ def get_record(zone_id):
     raise Exception(f"Record {RECORD_TYPE} {RECORD_NAME} not found in zone {ZONE_NAME}.")
 
 def update_record(record_id, zone_id, value, ttl):
-    if USE_UPDATEZONE:
-        print("Using UpdateZone API (PATCH /zones/{zoneId}) ...")
-        # Get all records, replace the value for the target one
-        resp = requests.get(f"{HETZNER_DNS_API_URL}/records?zone_id={zone_id}", headers=HEADERS)
-        resp.raise_for_status()
-        records = resp.json().get("records", [])
-        updated_records = []
-        for record in records:
-            rec = dict(record)
-            if rec["id"] == record_id:
-                rec["value"] = value
-                rec["ttl"] = ttl
-            updated_records.append({
-                "id": rec["id"],
-                "type": rec["type"],
-                "name": rec["name"],
-                "value": rec["value"],
-                "ttl": rec["ttl"]
-            })
-        patch_data = {"records": updated_records}
-        patch_resp = requests.patch(f"{HETZNER_DNS_API_URL}/zones/{zone_id}", headers=HEADERS, json=patch_data)
-        patch_resp.raise_for_status()
-        result = patch_resp.json()
-        # Find and return the updated record
-        for rec in result.get("zone", {}).get("records", []):
-            if rec["id"] == record_id:
-                return rec
-        raise Exception(f"Updated record with id {record_id} not found after UpdateZone PATCH.")
-    else:
-        data = {
-            "zone_id": zone_id,
-            "type": RECORD_TYPE,
-            "name": RECORD_NAME,
-            "value": value,
-            "ttl": ttl
-        }
-        resp = requests.put(f"{HETZNER_DNS_API_URL}/records/{record_id}", headers=HEADERS, json=data)
-        resp.raise_for_status()
-        return resp.json()["record"]
+    data = {
+        "zone_id": zone_id,
+        "type": RECORD_TYPE,
+        "name": RECORD_NAME,
+        "value": value,
+        "ttl": ttl
+    }
+    resp = requests.put(f"{HETZNER_DNS_API_URL}/records/{record_id}", headers=HEADERS, json=data)
+    resp.raise_for_status()
+    return resp.json()["record"]
 
 def main_loop():
     last_ip = None
