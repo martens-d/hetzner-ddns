@@ -7,4 +7,4 @@ echo "RECORD_NAME: $RECORD_NAME"
 echo "INTERVAL: $INTERVAL"
 echo "HETZNER_API_TYPE: $HETZNER_API_TYPE"
 echo "==============================="
-exec python hetzner_ddns.py
+exec python -u hetzner_ddns.py

@@ -3,6 +3,9 @@ import sys
 import time
 import requests
 
+print("hetzner_ddns.py starting up!")
+print("Python version:", sys.version)
+
 # API URLs
 HETZNER_DNS_API_URL = "https://dns.hetzner.com/api/v1"
 HETZNER_CLOUD_API_URL = "https://api.hetzner.cloud/v1"
