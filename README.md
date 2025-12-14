@@ -15,7 +15,7 @@ Allows you to use Hetzner DNS as a DynDNS Provider.
 
 ### Umgebungsvariablen
 
-| Variable             | Beschreibung                                              | Pflicht | Default            |
+| Variable             | Beschreibung                                             | Pflicht | Default            |
 |----------------------|----------------------------------------------------------|---------|--------------------|
 | `ZONE_NAME`          | Name der DNS Zone (z.B. example.com)                     | ja      | –                  |
 | `API_TOKEN`          | API Token passend zur API-Art                            | ja      | –                  |
@@ -23,6 +23,7 @@ Allows you to use Hetzner DNS as a DynDNS Provider.
 | `RECORD_NAME`        | Name des Records (z.B. `home` oder `@`)                  | ja      | `@`                |
 | `INTERVAL`           | Aktualisierungsintervall in Sekunden                     | nein    | 300                |
 | `HETZNER_API_TYPE`   | `dns` (Standard, alte API) oder `cloud` (neue Cloud-API) | nein    | `dns`              |
+| `DEBUG`              | Gibt API-Responses im Terminal aus (1/true/yes/on)       | nein    | `0`                |
 
 Achte darauf, dass der API Token zur gewählten API passt, siehe [Hetzner DNS Console](https://dns.hetzner.com/) bzw. [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
@@ -65,6 +66,7 @@ services:
 
 - Für die Cloud-API brauchst du einen [Hetzner Cloud API-Token](https://console.hetzner.cloud/projects -> Zugriff -> API-Token).
 - Die Umgebungsvariable `HETZNER_API_TYPE` steuert, welche API verwendet wird.
+- **DEBUG:** Setze die Umgebungsvariable `DEBUG=1` (oder `true`/`yes`/`on`), um die vollständigen API-Responses im Terminal auszugeben (z.B. für Debugging oder Support).
 
 ---
 
@@ -77,7 +79,7 @@ services:
 
 ### Environment Variables
 
-| Variable             | Description                                               | Required | Default    |
+| Variable             | Description                                              | Required | Default    |
 |----------------------|----------------------------------------------------------|----------|------------|
 | `ZONE_NAME`          | The DNS zone name (e.g. example.com)                     | yes      | –          |
 | `API_TOKEN`          | API token for your selected API                          | yes      | –          |
@@ -85,6 +87,7 @@ services:
 | `RECORD_NAME`        | Record name (e.g. `home` or `@`)                         | yes      | `@`        |
 | `INTERVAL`           | Update interval in seconds                               | no       | 300        |
 | `HETZNER_API_TYPE`   | `dns` (default: legacy API) or `cloud` (new Cloud API)   | no       | `dns`      |
+| `DEBUG`              | Print API responses to terminal (1/true/yes/on)          | no       | `0`        |
 
 Please make sure your API token matches the selected API: see [Hetzner DNS Console](https://dns.hetzner.com/) or [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
@@ -127,3 +130,4 @@ services:
 
 - For the Cloud API, create a [Hetzner Cloud API token](https://console.hetzner.cloud/projects -> Access -> API tokens).
 - The environment variable `HETZNER_API_TYPE` switches between APIs (`dns` for legacy, `cloud` for new Cloud API).
+- **DEBUG:** Set the environment variable `DEBUG=1` (or `true`/`yes`/`on`) to print full API responses to the terminal (useful for debugging or support).
