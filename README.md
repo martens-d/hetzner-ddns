@@ -1,13 +1,19 @@
 # hetzner-ddns
 
-Allows you to use Hetzner Cloud DNS as a DynDNS Provider.
+Allows you to use Hetzner DNS as a DynDNS Provider.
 
-## Features
+**English below** / **English instructions see below**
 
-- Updates A/AAAA records at Hetzner DNS automatically
-- **NEU:** Unterstützung für die neue [Hetzner Cloud-DNS API](https://docs.hetzner.cloud/reference/cloud#dns), wählbar per Umgebungsvariable
+---
 
-## Environment Variables
+## Deutsch
+
+### Funktionen
+
+- Aktualisiert A/AAAA-Records automatisch bei Hetzner DNS
+- **Neu:** Unterstützung für die neue [Hetzner Cloud DNS-API](https://docs.hetzner.cloud/reference/cloud#dns), über eine Environment-Variable wählbar
+
+### Umgebungsvariablen
 
 | Variable             | Beschreibung                                              | Pflicht        |
 |----------------------|----------------------------------------------------------|---------------|
@@ -18,11 +24,11 @@ Allows you to use Hetzner Cloud DNS as a DynDNS Provider.
 | `INTERVAL`           | Aktualisierungsintervall in Sekunden (default: 300)      | nein          |
 | `HETZNER_API_TYPE`   | `dns` (Standard, alte API) oder `cloud` (neue Cloud-API) | nein (default: `dns`) |
 
-Der richtige `API_TOKEN` muss zu deiner gewählten API passen, siehe [Hetzner DNS Console](https://dns.hetzner.com/) bzw. [Hetzner Cloud Console](https://console.hetzner.cloud/).
+Achte darauf, dass der API Token zur gewählten API passt, siehe [Hetzner DNS Console](https://dns.hetzner.com/) bzw. [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
-## Docker Example
+### Beispiel: Docker Run
 
-### Standard: Public DNS API
+#### Standard: Public DNS API
 ```sh
 docker run -e ZONE_NAME=example.com \
            -e API_TOKEN=tok_abc123 \
@@ -31,7 +37,7 @@ docker run -e ZONE_NAME=example.com \
            martens-d/hetzner-ddns
 ```
 
-### NEU: Cloud-API
+#### NEU: Cloud-API
 ```sh
 docker run -e ZONE_NAME=example.com \
            -e API_TOKEN=hcloud_xxx \
@@ -41,7 +47,83 @@ docker run -e ZONE_NAME=example.com \
            martens-d/hetzner-ddns
 ```
 
-## Hinweise
+### Beispiel: Docker Compose
+
+```yaml
+services:
+  hetzner-ddns:
+    image: martens-d/hetzner-ddns
+    environment:
+      - ZONE_NAME=example.com
+      - API_TOKEN=tok_abc123
+      - RECORD_TYPE=A
+      - RECORD_NAME=home
+      # - HETZNER_API_TYPE=cloud  # für die neue Cloud-API einfügen
+```
+
+### Hinweise
 
 - Für die Cloud-API brauchst du einen [Hetzner Cloud API-Token](https://console.hetzner.cloud/projects -> Zugriff -> API-Token).
 - Die Umgebungsvariable `HETZNER_API_TYPE` steuert, welche API verwendet wird.
+
+---
+
+## English
+
+### Features
+
+- Automatically updates A/AAAA records with Hetzner DNS
+- **New:** Support for new [Hetzner Cloud DNS API](https://docs.hetzner.cloud/reference/cloud#dns) selectable via environment variable
+
+### Environment Variables
+
+| Variable             | Description                                               | Required     |
+|----------------------|----------------------------------------------------------|--------------|
+| `ZONE_NAME`          | The DNS zone name (e.g. example.com)                     | yes          |
+| `API_TOKEN`          | API token for your selected API                          | yes          |
+| `RECORD_TYPE`        | DNS record type (`A` or `AAAA`)                          | yes          |
+| `RECORD_NAME`        | Record name (e.g. `home` or `@`)                         | yes          |
+| `INTERVAL`           | Update interval in seconds (default: 300)                | no           |
+| `HETZNER_API_TYPE`   | `dns` (default: legacy API) or `cloud` (new Cloud API)   | no (default: `dns`) |
+
+Please make sure your API token matches the selected API: see [Hetzner DNS Console](https://dns.hetzner.com/) or [Hetzner Cloud Console](https://console.hetzner.cloud/).
+
+### Example: Docker Run
+
+#### Default: Public DNS API
+```sh
+docker run -e ZONE_NAME=example.com \
+           -e API_TOKEN=tok_abc123 \
+           -e RECORD_TYPE=A \
+           -e RECORD_NAME=home \
+           martens-d/hetzner-ddns
+```
+
+#### NEW: Cloud API
+```sh
+docker run -e ZONE_NAME=example.com \
+           -e API_TOKEN=hcloud_xxx \
+           -e RECORD_TYPE=A \
+           -e RECORD_NAME=home \
+           -e HETZNER_API_TYPE=cloud \
+           martens-d/hetzner-ddns
+```
+
+### Example: Docker Compose
+
+```yaml
+services:
+  hetzner-ddns:
+    image: martens-d/hetzner-ddns
+    environment:
+      - ZONE_NAME=example.com
+      - API_TOKEN=tok_abc123
+      - RECORD_TYPE=A
+      - RECORD_NAME=home
+      # - HETZNER_API_TYPE=cloud  # enable for new cloud API
+```
+
+### Notes
+
+- For the Cloud API, create a [Hetzner Cloud API token](https://console.hetzner.cloud/projects -> Access -> API tokens).
+- The environment variable `HETZNER_API_TYPE` switches between APIs (`dns` for legacy, `cloud` for new Cloud API).
