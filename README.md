@@ -15,14 +15,14 @@ Allows you to use Hetzner DNS as a DynDNS Provider.
 
 ### Umgebungsvariablen
 
-| Variable             | Beschreibung                                              | Pflicht        |
-|----------------------|----------------------------------------------------------|---------------|
-| `ZONE_NAME`          | Name der DNS Zone (z.B. example.com)                     | ja            |
-| `API_TOKEN`          | API Token passend zur API-Art                            | ja            |
-| `RECORD_TYPE`        | DNS Record Typ (`A` oder `AAAA`)                         | ja            |
-| `RECORD_NAME`        | Name des Records (z.B. `home` oder `@`)                  | ja            |
-| `INTERVAL`           | Aktualisierungsintervall in Sekunden (default: 300)      | nein          |
-| `HETZNER_API_TYPE`   | `dns` (Standard, alte API) oder `cloud` (neue Cloud-API) | nein (default: `dns`) |
+| Variable             | Beschreibung                                              | Pflicht | Default            |
+|----------------------|----------------------------------------------------------|---------|--------------------|
+| `ZONE_NAME`          | Name der DNS Zone (z.B. example.com)                     | ja      | –                  |
+| `API_TOKEN`          | API Token passend zur API-Art                            | ja      | –                  |
+| `RECORD_TYPE`        | DNS Record Typ (`A` oder `AAAA`)                         | ja      | `A`                |
+| `RECORD_NAME`        | Name des Records (z.B. `home` oder `@`)                  | ja      | `@`                |
+| `INTERVAL`           | Aktualisierungsintervall in Sekunden                     | nein    | 300                |
+| `HETZNER_API_TYPE`   | `dns` (Standard, alte API) oder `cloud` (neue Cloud-API) | nein    | `dns`              |
 
 Achte darauf, dass der API Token zur gewählten API passt, siehe [Hetzner DNS Console](https://dns.hetzner.com/) bzw. [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
@@ -77,14 +77,14 @@ services:
 
 ### Environment Variables
 
-| Variable             | Description                                               | Required     |
-|----------------------|----------------------------------------------------------|--------------|
-| `ZONE_NAME`          | The DNS zone name (e.g. example.com)                     | yes          |
-| `API_TOKEN`          | API token for your selected API                          | yes          |
-| `RECORD_TYPE`        | DNS record type (`A` or `AAAA`)                          | yes          |
-| `RECORD_NAME`        | Record name (e.g. `home` or `@`)                         | yes          |
-| `INTERVAL`           | Update interval in seconds (default: 300)                | no           |
-| `HETZNER_API_TYPE`   | `dns` (default: legacy API) or `cloud` (new Cloud API)   | no (default: `dns`) |
+| Variable             | Description                                               | Required | Default    |
+|----------------------|----------------------------------------------------------|----------|------------|
+| `ZONE_NAME`          | The DNS zone name (e.g. example.com)                     | yes      | –          |
+| `API_TOKEN`          | API token for your selected API                          | yes      | –          |
+| `RECORD_TYPE`        | DNS record type (`A` or `AAAA`)                          | yes      | `A`        |
+| `RECORD_NAME`        | Record name (e.g. `home` or `@`)                         | yes      | `@`        |
+| `INTERVAL`           | Update interval in seconds                               | no       | 300        |
+| `HETZNER_API_TYPE`   | `dns` (default: legacy API) or `cloud` (new Cloud API)   | no       | `dns`      |
 
 Please make sure your API token matches the selected API: see [Hetzner DNS Console](https://dns.hetzner.com/) or [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
