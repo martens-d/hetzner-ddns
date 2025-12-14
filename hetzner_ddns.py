@@ -121,7 +121,7 @@ def main_loop():
                     updated = update_record_cloud(record["id"], zone_id, current_ip, record["ttl"])
                     print(f"Record updated: {updated}")
                 else:
-                    print("No update needed.")
+                    print(f"No DNS update required for {RECORD_NAME}.{ZONE_NAME} with IP {current_ip}")
             else:
                 zone_id = get_zone_id_dns()
                 record = get_record_dns(zone_id)
@@ -131,7 +131,7 @@ def main_loop():
                     updated = update_record_dns(record["id"], zone_id, current_ip, record["ttl"])
                     print(f"Record updated: {updated}")
                 else:
-                    print("No update needed.")
+                    print(f"No DNS update required for {RECORD_NAME}.{ZONE_NAME} with IP {current_ip}")
         except Exception as e:
             print(f"Error: {e}")
         time.sleep(INTERVAL)
