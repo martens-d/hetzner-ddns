@@ -8,23 +8,29 @@ Allows you to use Hetzner DNS as a DynDNS Provider.
 
 ## Deutsch
 
+> [!WARNING]
+> HETZNER_API_TYPE=cloud nicht getestet
+
 ### Funktionen
 
 - Aktualisiert A/AAAA-Records automatisch bei Hetzner DNS
 - **Neu:** Unterstützung für die neue [Hetzner Cloud DNS-API](https://docs.hetzner.cloud/reference/cloud#dns), über eine Environment-Variable wählbar
+- **Neu:** Interaktive Tabelle (Web-UI) mit Aktionen pro Record (Bearbeiten/Löschen/Hinzufügen).
 
 ### Umgebungsvariablen
 
-| Variable             | Beschreibung                                             | Pflicht | Default            |
-|----------------------|----------------------------------------------------------|---------|--------------------|
-| `ZONE_NAME`          | Name der DNS Zone (z.B. example.com)                     | ja      | –                  |
-| `API_TOKEN`          | API Token passend zur API-Art                            | ja      | –                  |
-| `RECORD_TYPE`        | DNS Record Typ (`A` oder `AAAA`)                         | ja      | `A`                |
-| `RECORD_NAME`        | Name des Records (z.B. `home` oder `@`)                  | ja      | `@`                |
-| `INTERVAL`           | Aktualisierungsintervall in Sekunden                     | nein    | 300                |
-| `HETZNER_API_TYPE`   | `dns` (Standard, alte API) oder `cloud` (neue Cloud-API) | nein    | `dns`              |
-| `DEBUG`              | Gibt API-Responses im Terminal aus (1/true/yes/on)       | nein    | `0`                |
-| `SHOW_TABLE`         | Zeigt alle Records als Tabelle im Browser (1/true/yes/on)| nein    | `0`                |
+| Variable                  | Beschreibung                                                 | Pflicht | Default            |
+|---------------------------|--------------------------------------------------------------|---------|--------------------|
+| `ZONE_NAME`               | Name der DNS Zone (z.B. example.com)                         | ja      | –                  |
+| `API_TOKEN`               | API Token passend zur API-Art                                | ja      | –                  |
+| `RECORD_TYPE`             | DNS Record Typ (`A` oder `AAAA`)                             | ja      | `A`                |
+| `RECORD_NAME`             | Name des Records (z.B. `home` oder `@`)                      | ja      | `@`                |
+| `INTERVAL`                | Aktualisierungsintervall in Sekunden                         | nein    | 300                |
+| `HETZNER_API_TYPE`        | `dns` (Standard, alte API) oder `cloud` (neue Cloud-API)     | nein    | `dns`              |
+| `DEBUG`                   | Gibt API-Responses im Terminal aus (1/true/yes/on)           | nein    | `0`                |
+| `SHOW_TABLE`              | Zeigte Web-UI für alle Records des API_TOKEN (1/true/yes/on) | nein    | `0`                |
+| `START_BACKGROUND_UPDATE` | Deaktiviert die automatisch Aktualisierung (0/false/no/off)  | nein    | `1`                |
+| `LANG`                    | stetzt die Sprache für die Web-UI (de/en/fr/pt-BR)           | nein    | `en` (fallback)    |
 
 Achte darauf, dass der API Token zur gewählten API passt, siehe [Hetzner DNS Console](https://dns.hetzner.com/) bzw. [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
@@ -55,12 +61,18 @@ docker run -e ZONE_NAME=example.com \
 services:
   hetzner-ddns:
     image: martens-d/hetzner-ddns
+    #nur notwendig, wenn Web-UI aktiv
+    #ports:
+    #  - 80:8080
     environment:
       - ZONE_NAME=example.com
       - API_TOKEN=tok_abc123
       - RECORD_TYPE=A
       - RECORD_NAME=home
-      # - HETZNER_API_TYPE=cloud  # für die neue Cloud-API einfügen
+      # - HETZNER_API_TYPE=cloud     # für die neue Cloud-API einfügen
+      # - SHOW_TABLE=1               # für die neue Web-UI
+      # - START_BACKGROUND_UPDATE=0  # schaltet den automatischen Hintergrundservice ab
+      # - LANG=de                    # Sprache für die Web-UI (aktuell: de, en (Fallback), fr oder pt-BR)
 ```
 
 ### Hinweise
@@ -73,23 +85,29 @@ services:
 
 ## English
 
+> [!WARNING]
+> HETZNER_API_TYPE=cloud not tested
+
 ### Features
 
 - Automatically updates A/AAAA records with Hetzner DNS
 - **New:** Support for new [Hetzner Cloud DNS API](https://docs.hetzner.cloud/reference/cloud#dns) selectable via environment variable
+- **New:** Interactive table (Web-UI) with per-record edit/delete/add actions.
 
 ### Environment Variables
 
-| Variable             | Description                                              | Required | Default    |
-|----------------------|----------------------------------------------------------|----------|------------|
-| `ZONE_NAME`          | The DNS zone name (e.g. example.com)                     | yes      | –          |
-| `API_TOKEN`          | API token for your selected API                          | yes      | –          |
-| `RECORD_TYPE`        | DNS record type (`A` or `AAAA`)                          | yes      | `A`        |
-| `RECORD_NAME`        | Record name (e.g. `home` or `@`)                         | yes      | `@`        |
-| `INTERVAL`           | Update interval in seconds                               | no       | 300        |
-| `HETZNER_API_TYPE`   | `dns` (default: legacy API) or `cloud` (new Cloud API)   | no       | `dns`      |
-| `DEBUG`              | Print API responses to terminal (1/true/yes/on)          | no       | `0`        |
-| `SHOW_TABLE`         | Show all records as table in browser (1/true/yes/on)     | no       | `0`        |
+| Variable                  | Description                                              | Required | Default         |
+|---------------------------|----------------------------------------------------------|----------|-----------------|
+| `ZONE_NAME`               | The DNS zone name (e.g. example.com)                     | yes      | –               |
+| `API_TOKEN`               | API token for your selected API                          | yes      | –               |
+| `RECORD_TYPE`             | DNS record type (`A` or `AAAA`)                          | yes      | `A`             |
+| `RECORD_NAME`             | Record name (e.g. `home` or `@`)                         | yes      | `@`             |
+| `INTERVAL`                | Update interval in seconds                               | no       | 300             |
+| `HETZNER_API_TYPE`        | `dns` (default: legacy API) or `cloud` (new Cloud API)   | no       | `dns`           |
+| `DEBUG`                   | Print API responses to terminal (1/true/yes/on)          | no       | `0`             |
+| `SHOW_TABLE`              | Show Web-UI for all records of API_TOKEN (1/true/yes/on) | no       | `0`             |
+| `START_BACKGROUND_UPDATE` | disables automatic records updates (0/false/no/off)      | no       | `1`             |
+| `LANG`                    | set language for Web-UI (de/en/fr/pt-BR)                 | no       | `en` (fallback) |
 
 Please make sure your API token matches the selected API: see [Hetzner DNS Console](https://dns.hetzner.com/) or [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
@@ -120,12 +138,18 @@ docker run -e ZONE_NAME=example.com \
 services:
   hetzner-ddns:
     image: martens-d/hetzner-ddns
+    #only needed when Web-UI enabled
+    #ports:
+    #  - 80:8080
     environment:
       - ZONE_NAME=example.com
       - API_TOKEN=tok_abc123
       - RECORD_TYPE=A
       - RECORD_NAME=home
-      # - HETZNER_API_TYPE=cloud  # enable for new cloud API
+      # - HETZNER_API_TYPE=cloud     # enable for new cloud API
+      # - SHOW_TABLE=1               # enable for new Web-UI
+      # - START_BACKGROUND_UPDATE=0  # disables automatic background updates (if you just want the Web-UI)
+      # - LANG=de                    # language for Web-UI (current: de, en (fallback), fr or pt-BR)
 ```
 
 ### Notes
