@@ -61,8 +61,9 @@ docker run -e ZONE_NAME=example.com \
 services:
   hetzner-ddns:
     image: martens-d/hetzner-ddns
-    ports:
-      - 80:8080
+    #nur notwendig, wenn Web-UI aktiv
+    #ports:
+    #  - 80:8080
     environment:
       - ZONE_NAME=example.com
       - API_TOKEN=tok_abc123
@@ -137,8 +138,9 @@ docker run -e ZONE_NAME=example.com \
 services:
   hetzner-ddns:
     image: martens-d/hetzner-ddns
-    ports:
-      - 80:8080
+    #only needed when Web-UI enabled
+    #ports:
+    #  - 80:8080
     environment:
       - ZONE_NAME=example.com
       - API_TOKEN=tok_abc123
