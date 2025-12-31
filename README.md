@@ -24,6 +24,7 @@ Allows you to use Hetzner DNS as a DynDNS Provider.
 | `INTERVAL`           | Aktualisierungsintervall in Sekunden                     | nein    | 300                |
 | `HETZNER_API_TYPE`   | `dns` (Standard, alte API) oder `cloud` (neue Cloud-API) | nein    | `dns`              |
 | `DEBUG`              | Gibt API-Responses im Terminal aus (1/true/yes/on)       | nein    | `0`                |
+| `SHOW_TABLE`         | Zeigt alle Records als Tabelle im Browser (1/true/yes/on)| nein    | `0`                |
 
 Achte darauf, dass der API Token zur gewählten API passt, siehe [Hetzner DNS Console](https://dns.hetzner.com/) bzw. [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
@@ -88,6 +89,7 @@ services:
 | `INTERVAL`           | Update interval in seconds                               | no       | 300        |
 | `HETZNER_API_TYPE`   | `dns` (default: legacy API) or `cloud` (new Cloud API)   | no       | `dns`      |
 | `DEBUG`              | Print API responses to terminal (1/true/yes/on)          | no       | `0`        |
+| `SHOW_TABLE`         | Show all records as table in browser (1/true/yes/on)     | no       | `0`        |
 
 Please make sure your API token matches the selected API: see [Hetzner DNS Console](https://dns.hetzner.com/) or [Hetzner Cloud Console](https://console.hetzner.cloud/).
 
