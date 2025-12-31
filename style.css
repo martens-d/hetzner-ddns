@@ -1,0 +1,345 @@
+/* DDNS styling */
+:root {
+  --ddns-orange: #ff7300;
+  --ddns-blue: #2e3a87;
+  --ddns-dark: #22272e;
+  --ddns-light: #f8f9fa;
+  --ddns-table-bg: #fff;
+  --ddns-table-bg-dark: #23272b;
+  --ddns-table-border: #e5e7eb;
+  --ddns-table-border-dark: #333;
+  --ddns-table-row-alt: #f2f2f2;
+  --ddns-table-row-alt-dark: #23272b;
+  --ddns-table-radius: 10px;
+  /* Traefik-like variable aliases */
+  --colors-primary: var(--ddns-orange);
+  --colors-01dp: #ffffff;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: var(--ddns-light);
+  color: #22272e;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Layout for sidebar + content */
+.layout {
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-start;
+  padding: 0.6rem 2rem 1.4rem;
+}
+
+.sidebar {
+  width: 240px;
+  background: rgba(0,0,0,0.04);
+  border: 1px solid var(--ddns-table-border);
+  border-radius: 10px;
+  padding: 0.8rem;
+}
+
+.sidebar-title {
+  font-weight: 600;
+  opacity: 0.8;
+  margin: 0.2rem 0 0.6rem;
+}
+
+.zone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.zone-item {
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.zone-item:hover {
+  background: rgba(0,0,0,0.06);
+}
+
+.zone-item.active {
+  background: rgba(42, 162, 193, 0.15);
+  color: var(--ddns-orange);
+}
+
+.content {
+  flex: 1;
+}
+
+.theme-switcher {
+  position: absolute;
+  top: 1.2em;
+  right: 2em;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.theme-icon {
+  width: 1.3em;
+  height: 1.3em;
+  vertical-align: middle;
+  margin-right: 0.2em;
+  cursor: pointer;
+  color: var(--ddns-orange);
+}
+
+.theme-switcher select {
+  padding: 0.2em 0.7em;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  font-size: 1em;
+}
+
+.theme-name {
+  display: none;
+}
+
+h1 {
+  margin: 0.6em 0 0.4em 0;
+  text-align: center;
+  color: var(--ddns-orange);
+}
+
+.zone-info {
+  text-align: center;
+  opacity: 0.85;
+  margin: -0.2em 0 0.4em 0;
+  font-size: 0.9em;
+}
+
+.ddns-table-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin: 0.8em 0 1.2em;
+}
+
+.ddns-table-container.outer {
+  border: 2px solid var(--ddns-blue);
+  border-radius: var(--ddns-table-radius);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+.ddns-table-container.inner {
+  background: var(--ddns-table-bg);
+  border-radius: calc(var(--ddns-table-radius));
+  margin: 0; /* remove inherited outer margins */
+  width: 100%;
+  overflow: hidden; /* clip table corners inside inner radius so frame covers them */
+}
+
+.ddns-table {
+  border: none;
+  background: var(--ddns-table-bg);
+  min-width: 350px;
+  width: 100%;
+  max-width: none;
+  font-size: 0.92em;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ddns-table th, .ddns-table td {
+  padding: 0.45em 0.8em;
+  border: 1px solid var(--ddns-table-border);
+  text-align: left;
+}
+
+.ddns-table th {
+  background: var(--ddns-orange);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1em;
+}
+
+.ddns-table tr:nth-child(even) {
+  background: var(--ddns-table-row-alt);
+}
+
+.value-col {
+  max-width: 360px;
+  word-break: break-all;
+  white-space: pre-wrap;
+  font-size: 0.97em;
+}
+
+/* Compact column sizing */
+.ddns-table th.actions-col, .ddns-table td.actions-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+.ddns-table th.type-col, .ddns-table td.type-cell {
+  width: 8ch;
+  white-space: nowrap;
+}
+.ddns-table th.ttl-col, .ddns-table td.ttl-cell {
+  width: 6ch;
+  white-space: nowrap;
+}
+.ddns-table th.name-col, .ddns-table td.name-cell {
+  width: 24ch;
+  max-width: 24ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* System dark mode */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: var(--ddns-dark);
+    color: #f8f9fa;
+  }
+  .sidebar {
+    background: rgba(255,255,255,0.03);
+    border-color: var(--ddns-table-border-dark);
+  }
+  .zone-item:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .zone-item.active {
+    background: rgba(42, 162, 193, 0.18);
+  }
+  .ddns-table {
+    background: var(--ddns-table-bg-dark);
+  }
+  .ddns-table th, .ddns-table td {
+    border-color: var(--ddns-table-border-dark);
+  }
+  .ddns-table tr:nth-child(even) {
+    background: var(--ddns-table-row-alt-dark);
+  }
+}
+
+/* Explicit theme overrides */
+html[data-theme='dark'] body,
+html.dark body {
+  background: var(--ddns-dark);
+  color: #f8f9fa;
+}
+
+html[data-theme='dark'] .ddns-table,
+html.dark .ddns-table {
+  background: var(--ddns-table-bg-dark);
+}
+
+html[data-theme='dark'] .ddns-table th, html[data-theme='dark'] .ddns-table td,
+html.dark .ddns-table th, html.dark .ddns-table td {
+  border-color: var(--ddns-table-border-dark);
+}
+
+/* Improve select readability in dark mode */
+html[data-theme='dark'] .modal-row input,
+html[data-theme='dark'] .modal-row select,
+html.dark .modal-row input,
+html.dark .modal-row select {
+  background: var(--ddns-table-bg-dark);
+  color: #e9eef5;
+  border-color: var(--ddns-table-border-dark);
+}
+html[data-theme='dark'] .modal-row select option,
+html.dark .modal-row select option {
+  background: var(--ddns-table-bg-dark);
+  color: #e9eef5;
+}
+
+html[data-theme='dark'] .ddns-table tr:nth-child(even),
+html.dark .ddns-table tr:nth-child(even) {
+  background: var(--ddns-table-row-alt-dark);
+}
+
+html[data-theme='light'] body,
+html.light body {
+  background: var(--ddns-light);
+  color: #22272e;
+}
+
+html[data-theme='light'] .ddns-table,
+html.light .ddns-table {
+  background: var(--ddns-table-bg);
+}
+
+html[data-theme='light'] .ddns-table th, html[data-theme='light'] .ddns-table td,
+html.light .ddns-table th, html.light .ddns-table td {
+  border-color: var(--ddns-table-border);
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .ddns-table, .ddns-table th, .ddns-table td {
+    font-size: 0.93em;
+  }
+  .ddns-table {
+    min-width: 95vw;
+  }
+  .value-col {
+    max-width: 90vw;
+  }
+}
+
+/* Tighter spacing in content header */
+.content h1 {
+  margin-top: 0.2rem;
+}
+
+/* Dark palette */
+html[data-theme='dark'] {
+  --ddns-orange: #2AA2C1; /* Traefik DARK_PRIMARY_COLOR */
+  --ddns-blue: #217F97;   /* Traefik LIGHT_PRIMARY_COLOR as secondary */
+  --ddns-dark: #22272e;   /* keep our dark base */
+  --ddns-light: #2b313a;  /* slightly lighter surface */
+  --ddns-table-bg: #2b313a;
+  --ddns-table-bg-dark: #22272e;
+  --ddns-table-border: #3a414b;
+  --ddns-table-border-dark: #343b45;
+  --ddns-table-row-alt: #2a3039;
+  --ddns-table-row-alt-dark: #272d35;
+}
+html[data-theme='dark'] body { background: var(--ddns-dark); color: #e9eef5; }
+
+/* Light palette */
+html[data-theme='light'] {
+  --ddns-orange: #217F97; /* Traefik LIGHT_PRIMARY_COLOR */
+  --ddns-blue: #2AA2C1;   /* complement */
+  --ddns-dark: #334155;    /* text color */
+  --ddns-light: #f8fafc;   /* bg */
+  --ddns-table-bg: #ffffff;
+  --ddns-table-bg-dark: #f1f5f9;
+  --ddns-table-border: #e5e7eb;
+  --ddns-table-border-dark: #d1d5db;
+  --ddns-table-row-alt: #f8fafc;
+  --ddns-table-row-alt-dark: #f3f4f6;
+}
+html[data-theme='light'] body { background: var(--ddns-light); color: var(--ddns-dark); }
+
+/* Actions column and modal */
+.actions-cell { white-space: nowrap; }
+.icon-btn { border: 1px solid var(--ddns-table-border); background: transparent; color: inherit; border-radius: 6px; padding: 4px; margin-left: 6px; cursor: pointer; }
+.icon-btn:hover { background: rgba(0,0,0,0.06); }
+.icon { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+.add-row td { background: transparent; }
+.add-row-cell { text-align: left; }
+.btn-add { margin-left: 0; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 50; }
+.modal { background: var(--ddns-table-bg); color: inherit; border: 1px solid var(--ddns-table-border); border-radius: 10px; width: min(520px, 92vw); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.modal-header { padding: 12px 16px; font-weight: 600; border-bottom: 1px solid var(--ddns-table-border); }
+.modal-body { padding: 12px 16px; }
+.modal-row { display: flex; gap: 10px; margin-bottom: 8px; }
+.modal-row label { width: 80px; opacity: 0.8; }
+.modal-row input, .modal-row select { flex: 1; padding: 6px 8px; border: 1px solid var(--ddns-table-border); border-radius: 6px; background: var(--ddns-table-bg); color: inherit; }
+.modal-row select option { background: var(--ddns-table-bg); color: inherit; }
+.modal-summary { padding: 10px; border: 1px dashed var(--ddns-table-border); border-radius: 6px; margin-top: 8px; font-size: 0.95em; white-space: pre-wrap; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--ddns-table-border); }
+.btn { border: 1px solid var(--ddns-table-border); background: transparent; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+.btn.primary { background: var(--ddns-orange); color: #fff; border-color: var(--ddns-orange); }

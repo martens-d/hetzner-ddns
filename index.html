@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="${html_lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hetzner DNS Records</title>
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    // Cycle only System → Light → Dark; use standard data-theme keys
+    const THEMES = ['', 'light', 'dark'];
+    const INITIAL_ZONE = ${json_zone_name};
+    const REFRESH_MS = ${refresh_ms};
+    const DEBUG_JS = ${debug_js};
+    const LANG_OVERRIDE = ${lang_override_json};
+    // Server-side fallbacks for modal titles (ensures correct title even before i18n loads)
+    const SERVER_MODAL_TITLES = {
+      confirm: "${i18n_modal_confirm}",
+      edit: "${i18n_modal_edit}",
+      add: "${i18n_modal_add}",
+      delete: "${i18n_modal_delete}"
+    };
+    // Server-side fallbacks for modal labels (used in summary before i18n loads)
+    const SERVER_MODAL_LABELS = {
+      zone: "${i18n_label_zone}",
+      type: "${i18n_label_type}",
+      name: "${i18n_label_name}",
+      value: "${i18n_label_value}",
+      ttl: "${i18n_label_ttl}",
+      ttl_none: "${i18n_ttl_none}"
+    };
+    let ZONES_INDEX = {};
+    let refreshTimer = null;
+    window.CURRENT_ZONE = INITIAL_ZONE;
+    function effectiveMode(theme) {
+      if (theme === 'dark') return 'dark';
+      if (theme === 'light') return 'light';
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return prefersDark ? 'dark' : 'light';
+    }
+    function setTheme(theme) {
+      const mode = effectiveMode(theme); // 'dark' | 'light'
+      document.documentElement.setAttribute('data-theme', mode);
+      document.documentElement.classList.remove('dark','light');
+      document.documentElement.classList.add(mode);
+      localStorage.setItem('theme', theme);
+      updateThemeIcon(theme);
+    }
+    function getTheme() {
+      const t = localStorage.getItem('theme');
+      return (t === null) ? '' : t;
+    }
+    function nextTheme(current) {
+      const idx = THEMES.indexOf(current);
+      return THEMES[(idx + 1) % THEMES.length];
+    }
+    function updateThemeIcon(theme) {
+      var icon = document.getElementById('theme-icon');
+      const mode = effectiveMode(theme);
+      if (theme === '') {
+        // System: clock icon
+        icon.innerHTML = '<svg class="theme-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+        icon.title = 'Theme: System (klicken für Light)';
+      } else if (mode === 'dark') {
+        // Dark: moon icon
+        icon.innerHTML = '<svg class="theme-icon" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 0 1 12.21 3a7 7 0 1 0 8.79 9.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        icon.title = 'Theme: Dark (klicken für System)';
+      } else {
+        // Light: sun icon
+        icon.innerHTML = '<svg class="theme-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+        icon.title = 'Theme: Light (klicken für Dark)';
+      }
+    }
+    function cycleTheme() {
+      const current = getTheme();
+      const t = nextTheme(current);
+      setTheme(t);
+    }
+    function getActiveZone() {
+      return window.CURRENT_ZONE || INITIAL_ZONE;
+    }
+    // i18n helpers
+    let I18N = null;
+    let CURRENT_LANG = 'en';
+    function supportedMap() {
+      const map = {};
+      if (!I18N) return map;
+      Object.keys(I18N).forEach(k => { map[k.toLowerCase()] = k; });
+      return map;
+    }
+    function detectLang() {
+      // Build candidate list from browser preferences
+      const candidates = [];
+      if (navigator.languages && navigator.languages.length) {
+        candidates.push(...navigator.languages);
+      }
+      if (navigator.language) {
+        candidates.push(navigator.language);
+      }
+      const map = supportedMap();
+      const supportedLower = Object.keys(map);
+      const norm = (code) => (code || '').toLowerCase();
+      for (const cand of candidates) {
+        const lc = norm(cand);
+        if (!lc) continue;
+        const base = lc.split('-')[0];
+        // Prefer exact match (e.g., fr-CA) then base (fr)
+        if (map[lc]) return map[lc];
+        if (map[base]) return map[base];
+        // Try any key starting with base-
+        const foundLower = supportedLower.find(k => k.startsWith(base + '-'));
+        if (foundLower) return map[foundLower];
+      }
+      // Fallback order: en or en-* if available, else first available pack
+      const enLower = supportedLower.find(k => k === 'en' || k.startsWith('en-'));
+      if (enLower) return map[enLower];
+      return supportedLower.length ? map[supportedLower[0]] : 'en';
+    }
+    async function loadI18n() {
+      try {
+        const res = await fetch('/i18n.json?_=' + Date.now(), { cache: 'no-store' });
+        I18N = await res.json();
+        const cand = (LANG_OVERRIDE || '').toLowerCase();
+        const map = supportedMap();
+        const candBase = cand.split('-')[0];
+        if (cand && map[cand]) {
+          CURRENT_LANG = map[cand];
+        } else if (cand && map[candBase]) {
+          CURRENT_LANG = map[candBase];
+        } else {
+          CURRENT_LANG = detectLang();
+        }
+        if (DEBUG_JS) console.log('[DEBUG_JS] i18n lang=', CURRENT_LANG);
+      } catch (e) {
+        I18N = null;
+      }
+    }
+    function t(key) {
+      if (!I18N) return null;
+      const langPack = I18N[CURRENT_LANG] || {};
+      const map = supportedMap();
+      const enLower = Object.keys(map).find(k => k === 'en' || k.startsWith('en-'));
+      const enPack = enLower ? I18N[map[enLower]] : {};
+      return (langPack[key] !== undefined) ? langPack[key] : ((enPack[key] !== undefined) ? enPack[key] : null);
+    }
+    function applyI18n(root) {
+      const scope = root || document;
+      // inner text
+      scope.querySelectorAll('[data-i18n]').forEach(el => {
+        const val = t(el.getAttribute('data-i18n'));
+        if (val !== null) el.textContent = val;
+      });
+      // title attributes
+      scope.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const val = t(el.getAttribute('data-i18n-title'));
+        if (val !== null) el.setAttribute('title', val);
+      });
+      // placeholder attributes
+      scope.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const val = t(el.getAttribute('data-i18n-placeholder'));
+        if (val !== null) el.setAttribute('placeholder', val);
+      });
+    }
+
+    async function refreshCurrentZone() {
+      const zoneName = getActiveZone();
+      try {
+        const res = await fetch('/api/records?zone_name=' + encodeURIComponent(zoneName) + '&_=' + Date.now(), { cache: 'no-store' });
+        const html = await res.text();
+        document.getElementById('table-slot').innerHTML = html;
+        applyI18n(document.getElementById('table-slot'));
+        wireActions();
+        if (DEBUG_JS) console.log('[DEBUG_JS] refreshed zone', zoneName, 'html.len=', html.length);
+      } catch (e) {
+        // ignore transient errors
+        if (DEBUG_JS) console.warn('[DEBUG_JS] refresh error', e);
+      }
+    }
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(refreshCurrentZone, REFRESH_MS);
+    }
+    function updateZoneInfo(zoneName) {
+      const infoEl = document.getElementById('zone-info');
+      const titleEl = document.getElementById('records-title');
+      const z = ZONES_INDEX[zoneName];
+      let text = '';
+      const idVal = z && (z.id !== undefined && z.id !== null) ? String(z.id) : '';
+      if (idVal) text = (t('zone.info.id') ?? 'ID') + ': ' + idVal;
+      if (infoEl) infoEl.textContent = text;
+      const titleVal = t('title');
+      if (titleEl) titleEl.textContent = (titleVal !== null ? titleVal : 'DNS Records');
+    }
+
+    // Modal helpers and action wiring
+    function openModal(mode, data) {
+      document.getElementById('modal-mode').value = mode;
+      document.getElementById('modal-id').value = (data && data.id) ? data.id : '';
+      document.getElementById('modal-zone').value = window.CURRENT_ZONE || '';
+      document.getElementById('modal-type').value = (data && data.type) ? data.type : 'A';
+      document.getElementById('modal-name').value = (data && data.name) ? data.name : '';
+      document.getElementById('modal-value').value = (data && data.value) ? data.value : '';
+      document.getElementById('modal-ttl').value = (data && data.ttl) ? data.ttl : '';
+      const titleKey = (mode === 'delete') ? 'modal.title.delete' : ((mode === 'create') ? 'modal.title.add' : 'modal.title.edit');
+      const titleEl = document.getElementById('modal-title');
+      // Set the data-i18n key dynamically so applyI18n renders the right title
+      if (titleEl) {
+        titleEl.setAttribute('data-i18n', titleKey);
+        const titleVal = t(titleKey);
+        // Fallback to server-injected title if i18n not yet loaded
+        const fallbackTitle = (mode === 'delete') ? SERVER_MODAL_TITLES.delete : ((mode === 'create') ? SERVER_MODAL_TITLES.add : SERVER_MODAL_TITLES.edit);
+        titleEl.textContent = (titleVal !== null ? titleVal : fallbackTitle);
+      }
+      const lblZone = t('modal.labels.zone');
+      const lblType = t('modal.labels.type');
+      const lblName = t('modal.labels.name');
+      const lblValue = t('modal.labels.value');
+      const lblTtl = t('modal.labels.ttl');
+      const lblTtlNone = t('modal.ttl.none');
+      const summary = (lblZone !== null ? lblZone : SERVER_MODAL_LABELS.zone) + ': ' + (window.CURRENT_ZONE || '') + '\n' +
+        (lblType !== null ? lblType : SERVER_MODAL_LABELS.type) + ': ' + document.getElementById('modal-type').value + '\n' +
+        (lblName !== null ? lblName : SERVER_MODAL_LABELS.name) + ': ' + document.getElementById('modal-name').value + '\n' +
+        (lblValue !== null ? lblValue : SERVER_MODAL_LABELS.value) + ': ' + document.getElementById('modal-value').value + '\n' +
+        (lblTtl !== null ? lblTtl : SERVER_MODAL_LABELS.ttl) + ': ' + (document.getElementById('modal-ttl').value || (lblTtlNone !== null ? lblTtlNone : SERVER_MODAL_LABELS.ttl_none));
+      document.getElementById('modal-summary').textContent = summary;
+      document.getElementById('modal').style.display = 'flex';
+      // Ensure titles/tooltips within modal are localized
+      applyI18n(document.getElementById('modal'));
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    async function confirmAction() {
+      const mode = document.getElementById('modal-mode').value;
+      const ttlSel = document.getElementById('modal-ttl').value;
+      const payload = {
+        zone_name: window.CURRENT_ZONE,
+        id: document.getElementById('modal-id').value,
+        type: document.getElementById('modal-type').value,
+        name: document.getElementById('modal-name').value,
+        value: document.getElementById('modal-value').value,
+        ttl: (ttlSel === '' ? null : Number(ttlSel))
+      };
+      let url = '';
+      if (mode === 'create') url = '/api/record/create';
+      else if (mode === 'update') url = '/api/record/update';
+      else if (mode === 'delete') url = '/api/record/delete';
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('Fehler ' + res.status);
+        if (DEBUG_JS) console.log('[DEBUG_JS] action', mode, 'ok');
+        closeModal();
+        await refreshCurrentZone();
+      } catch (e) {
+        alert('Aktion fehlgeschlagen: ' + e.message);
+        if (DEBUG_JS) console.error('[DEBUG_JS] action', mode, 'error', e);
+      }
+    }
+
+    function wireActions() {
+      const slot = document.getElementById('table-slot');
+      const editBtns = slot.querySelectorAll('.btn-edit');
+      editBtns.forEach(function(btn) {
+        btn.addEventListener('click', function(ev) {
+          const cell = ev.currentTarget.closest('.actions-cell');
+          const data = {
+            id: cell && cell.dataset ? cell.dataset.id || '' : '',
+            name: cell && cell.dataset ? cell.dataset.name || '' : '',
+            type: cell && cell.dataset ? cell.dataset.type || 'A' : 'A',
+            value: cell && cell.dataset ? cell.dataset.value || '' : '',
+            ttl: cell && cell.dataset ? cell.dataset.ttl || '' : ''
+          };
+          openModal('update', data);
+        });
+      });
+      const delBtns = slot.querySelectorAll('.btn-delete');
+      delBtns.forEach(function(btn) {
+        btn.addEventListener('click', function(ev) {
+          const cell = ev.currentTarget.closest('.actions-cell');
+          const data = {
+            id: cell && cell.dataset ? cell.dataset.id || '' : '',
+            name: cell && cell.dataset ? cell.dataset.name || '' : '',
+            type: cell && cell.dataset ? cell.dataset.type || 'A' : 'A',
+            value: cell && cell.dataset ? cell.dataset.value || '' : '',
+            ttl: cell && cell.dataset ? cell.dataset.ttl || '' : ''
+          };
+          openModal('delete', data);
+        });
+      });
+      const addBtn = slot.querySelector('.btn-add');
+      if (addBtn) {
+        addBtn.addEventListener('click', function() { openModal('create', {}); });
+      }
+    }
+
+    async function loadZones() {
+      try {
+        const res = await fetch('/api/zones');
+        const data = await res.json();
+        const list = document.getElementById('zone-list');
+        list.innerHTML = '';
+        const arr = (data.zones || []);
+        ZONES_INDEX = {};
+        arr.forEach(z => {
+          ZONES_INDEX[z.name] = z;
+          const li = document.createElement('li');
+          li.textContent = z.name;
+          li.dataset.zone = z.name;
+          li.className = 'zone-item' + (z.name === INITIAL_ZONE ? ' active' : '');
+          li.addEventListener('click', () => selectZone(z.name));
+          list.appendChild(li);
+        });
+        if (!arr.length) {
+          // Fallback if API returned empty list
+          ZONES_INDEX[INITIAL_ZONE] = { name: INITIAL_ZONE };
+          const li = document.createElement('li');
+          li.textContent = INITIAL_ZONE;
+          li.dataset.zone = INITIAL_ZONE;
+          li.className = 'zone-item active';
+          li.addEventListener('click', () => selectZone(INITIAL_ZONE));
+          list.appendChild(li);
+        }
+        updateZoneInfo(INITIAL_ZONE);
+      } catch (e) {
+        // Fallback: show only initial zone
+        const list = document.getElementById('zone-list');
+        ZONES_INDEX = { [INITIAL_ZONE]: { name: INITIAL_ZONE } };
+        const li = document.createElement('li');
+        li.textContent = INITIAL_ZONE;
+        li.dataset.zone = INITIAL_ZONE;
+        li.className = 'zone-item active';
+        li.addEventListener('click', () => selectZone(INITIAL_ZONE));
+        list.appendChild(li);
+        updateZoneInfo(INITIAL_ZONE);
+      }
+    }
+    async function selectZone(zoneName) {
+      const items = document.querySelectorAll('.zone-item');
+      items.forEach(i => i.classList.toggle('active', i.dataset.zone === zoneName));
+      window.CURRENT_ZONE = zoneName;
+      const res = await fetch('/api/records?zone_name=' + encodeURIComponent(zoneName) + '&_=' + Date.now(), { cache: 'no-store' });
+      const html = await res.text();
+      document.getElementById('table-slot').innerHTML = html;
+      if (DEBUG_JS) console.log('[DEBUG_JS] selected zone', zoneName, 'html.len=', html.length);
+      updateZoneInfo(zoneName);
+      applyI18n(document.getElementById('table-slot'));
+      wireActions();
+    }
+    (function() {
+      var theme = getTheme();
+      window.addEventListener('DOMContentLoaded', function() {
+        loadI18n().then(() => applyI18n(document));
+        setTheme(theme);
+        var icon = document.getElementById('theme-icon');
+        icon.addEventListener('click', cycleTheme);
+        loadZones();
+        startAutoRefresh();
+        // Hook modal buttons
+        var cancelBtn = document.getElementById('modal-cancel');
+        var okBtn = document.getElementById('modal-ok');
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (okBtn) okBtn.addEventListener('click', confirmAction);
+        // Bind actions for initially rendered table
+        applyI18n(document.getElementById('table-slot'));
+        wireActions();
+      });
+    })();
+  </script>
+  <style>
+    .actions-cell { white-space: nowrap; }
+    .icon-btn { border: 1px solid var(--ddns-table-border); background: transparent; color: inherit; border-radius: 6px; padding: 4px; margin-left: 6px; cursor: pointer; }
+    .icon-btn:hover { background: rgba(0,0,0,0.06); }
+    .icon { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+    .add-row td { background: transparent; }
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 50; }
+    .modal { background: var(--ddns-table-bg); color: inherit; border: 1px solid var(--ddns-table-border); border-radius: 10px; width: min(520px, 92vw); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .modal-header { padding: 12px 16px; font-weight: 600; border-bottom: 1px solid var(--ddns-table-border); }
+    .modal-body { padding: 12px 16px; }
+    .modal-row { display: flex; gap: 10px; margin-bottom: 8px; }
+    .modal-row label { width: 80px; opacity: 0.8; }
+    .modal-row input, .modal-row select { flex: 1; padding: 6px 8px; border: 1px solid var(--ddns-table-border); border-radius: 6px; background: transparent; color: inherit; }
+    .modal-summary { padding: 10px; border: 1px dashed var(--ddns-table-border); border-radius: 6px; margin-top: 8px; font-size: 0.95em; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--ddns-table-border); }
+    .btn { border: 1px solid var(--ddns-table-border); background: transparent; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .btn.primary { background: var(--ddns-orange); color: #fff; border-color: var(--ddns-orange); }
+  </style>
+</head>
+<body>
+  <div class="theme-switcher">
+    <span id="theme-icon"></span>
+  </div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-title" data-i18n="sidebar.title">${i18n_sidebar_title}</div>
+      <ul id="zone-list" class="zone-list"></ul>
+    </aside>
+    <main class="content">
+      <h1 id="records-title" data-i18n="title">${i18n_title}</h1>
+      <div id="zone-info" class="zone-info"></div>
+      <div class="ddns-table-container outer">
+        <div id="table-slot" class="ddns-table-container inner">
+          ${table_html}
+        </div>
+      </div>
+      <div id="modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header" id="modal-title" data-i18n="modal.title.confirm">${i18n_modal_confirm}</div>
+          <div class="modal-body">
+            <div class="modal-row"><label data-i18n="modal.labels.zone">${i18n_label_zone}</label><input id="modal-zone" type="text" readonly /></div>
+            <div class="modal-row"><label data-i18n="modal.labels.type">${i18n_label_type}</label><select id="modal-type"><option>A</option><option>AAAA</option><option>CAA</option><option>CNAME</option><option>MX</option><option>NS</option><option>PTR</option><option>SOA</option><option>SRV</option><option>TXT</option></select></div>
+            <div class="modal-row"><label data-i18n="modal.labels.name">${i18n_label_name}</label><input id="modal-name" type="text" /></div>
+            <div class="modal-row"><label data-i18n="modal.labels.value">${i18n_label_value}</label><input id="modal-value" type="text" /></div>
+            <div class="modal-row"><label data-i18n="modal.labels.ttl">${i18n_label_ttl}</label>
+              <select id="modal-ttl">
+                <option value="" data-i18n="modal.ttl.none">${i18n_ttl_none}</option>
+                <option value="300">300</option>
+                <option value="600">600</option>
+                <option value="900">900</option>
+                <option value="1800">1800</option>
+                <option value="3600">3600</option>
+              </select>
+            </div>
+            <div class="modal-summary" id="modal-summary"></div>
+            <input type="hidden" id="modal-id" />
+            <input type="hidden" id="modal-mode" />
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="modal-cancel" data-i18n="modal.actions.cancel">${i18n_modal_cancel}</button>
+            <button class="btn primary" id="modal-ok" data-i18n="modal.actions.ok">${i18n_modal_ok}</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

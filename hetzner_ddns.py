@@ -1,10 +1,11 @@
-import os
+
 import os
 import sys
 import time
 import requests
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import threading
+
+if os.getenv("SHOW_TABLE", "0").strip().lower() in ("1", "true", "yes", "on"):
+  from table_server import run_table_server
 
 print("starting up!")
 # API URLs
@@ -24,6 +25,8 @@ HETZNER_API_TYPE = os.getenv("HETZNER_API_TYPE", "dns").lower()
 DEBUG = os.getenv("DEBUG", "0").strip().lower() in ("1", "true", "yes", "on")
 # SHOW_TABLE Variable
 SHOW_TABLE = os.getenv("SHOW_TABLE", "0").strip().lower() in ("1", "true", "yes", "on")
+# START_BACKGROUND_UPDATE steuert das Starten des DDNS-Updaters
+START_BACKGROUND_UPDATE = os.getenv("START_BACKGROUND_UPDATE", "1").strip().lower() in ("1", "true", "yes", "on")
 
 # Validate required ENV
 if not (ZONE_NAME and API_TOKEN and RECORD_TYPE and RECORD_NAME):
@@ -46,28 +49,31 @@ def get_public_ip(record_type):
   return resp.text.strip()
 
 def get_zone_id_dns():
+  # Read target zone from current environment to support dynamic selection
+  zone_target = os.getenv("ZONE_NAME")
   resp = requests.get(f"{HETZNER_DNS_API_URL}/zones", headers=get_headers())
   if DEBUG:
     print("[DEBUG] Response von /zones:", resp.text)
   resp.raise_for_status()
   zones = resp.json().get("zones", [])
   for zone in zones:
-    if zone.get("name") == ZONE_NAME:
+    if zone.get("name") == zone_target:
       return zone.get("id")
-  raise Exception(f"Zone {ZONE_NAME} not found (DNS API).")
+  raise Exception(f"Zone {zone_target} not found (DNS API).")
 
 def get_zone_id_cloud():
-  # List all zones in the Hetzner Cloud DNS API
+  # Read target zone from current environment to support dynamic selection
   # ref: https://docs.hetzner.cloud/reference/cloud#get-api-v1-dns-zones
+  zone_target = os.getenv("ZONE_NAME")
   resp = requests.get(f"{HETZNER_CLOUD_API_URL}/dns/zones", headers=get_headers())
   if DEBUG:
     print("[DEBUG] Response von /dns/zones:", resp.text)
   resp.raise_for_status()
   zones = resp.json().get("dns_zones", [])
   for zone in zones:
-    if zone.get("name") == ZONE_NAME:
+    if zone.get("name") == zone_target:
       return zone.get("id")
-  raise Exception(f"Zone {ZONE_NAME} not found (Cloud API).")
+  raise Exception(f"Zone {zone_target} not found (Cloud API).")
 
 def get_record_dns(zone_id):
   resp = requests.get(f"{HETZNER_DNS_API_URL}/records?zone_id={zone_id}", headers=get_headers())
@@ -157,44 +163,36 @@ def main_loop():
       print(f"Error: {e}")
     time.sleep(INTERVAL)
 
-# Webserver für SHOW_TABLE
-class TableHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        try:
-            if HETZNER_API_TYPE == "cloud":
-                zone_id = get_zone_id_cloud()
-                records = get_record_cloud(zone_id)
-            else:
-                zone_id = get_zone_id_dns()
-                records = get_record_dns(zone_id)
-        except Exception as e:
-            self.send_response(500)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(f"<h1>Error</h1><pre>{e}</pre>".encode())
-            return
-
-        html = """
-        <html><head><title>Hetzner DNS Records</title></head><body>
-        <h1>DNS Records für Zone: {zone}</h1>
-        <table border='1'><tr><th>Name</th><th>Type</th><th>Value</th><th>TTL</th></tr>
-        """.format(zone=ZONE_NAME)
-        for r in records:
-            html += f"<tr><td>{r.get('name')}</td><td>{r.get('type')}</td><td>{r.get('value')}</td><td>{r.get('ttl')}</td></tr>"
-        html += "</table></body></html>"
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        self.wfile.write(html.encode())
-
-def run_table_server():
-    server_address = ('', 8080)
-    httpd = HTTPServer(server_address, TableHandler)
-    print("Webserver läuft auf Port 8080 (SHOW_TABLE aktiv)")
-    httpd.serve_forever()
 
 if __name__ == "__main__":
-  if SHOW_TABLE:
-    run_table_server()
-  else:
+  import threading
+  # Fälle:
+  # 1) Beide aktiv: Updater im Hintergrund + Table-Server im Vordergrund
+  # 2) Nur Updater: main_loop() blockierend
+  # 3) Nur Table: nur run_table_server()
+  # 4) Nichts: sauber beenden
+  if SHOW_TABLE and START_BACKGROUND_UPDATE:
+    t = threading.Thread(target=main_loop, daemon=True)
+    t.start()
+    run_table_server(
+      get_zone_id_dns=get_zone_id_dns,
+      get_zone_id_cloud=get_zone_id_cloud,
+      get_record_dns=get_record_dns,
+      get_record_cloud=get_record_cloud,
+      ZONE_NAME=ZONE_NAME,
+      HETZNER_API_TYPE=HETZNER_API_TYPE
+    )
+  elif START_BACKGROUND_UPDATE and not SHOW_TABLE:
     main_loop()
+  elif SHOW_TABLE and not START_BACKGROUND_UPDATE:
+    run_table_server(
+      get_zone_id_dns=get_zone_id_dns,
+      get_zone_id_cloud=get_zone_id_cloud,
+      get_record_dns=get_record_dns,
+      get_record_cloud=get_record_cloud,
+      ZONE_NAME=ZONE_NAME,
+      HETZNER_API_TYPE=HETZNER_API_TYPE
+    )
+  else:
+    print("Weder START_BACKGROUND_UPDATE noch SHOW_TABLE aktiv – nichts zu tun. Beende.")
+    sys.exit(0)
